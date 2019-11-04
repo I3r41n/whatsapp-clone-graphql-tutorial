@@ -1,0 +1,62 @@
+import React, { useContext } from 'react';
+import { useCallback } from 'react';
+import { useApolloClient } from '@apollo/react-hooks';
+import { Redirect } from 'react-router-dom';
+import { useCacheService } from './cache.service';
+import { useSignInMutation, useMeQuery, User, useSignUpMutation } from '../graphql/types';
+
+const MyContext = React.createContext<User | null>(null);
+
+export const useMe = () => {
+  return useContext(MyContext);
+};
+
+export const withAuth = <P extends object>(
+  Component: React.ComponentType<P>
+) => {
+  return (props: any) => {
+    if (!isSignedIn()) {
+      return props.history.location.pathname === '/sign-in' ? null : (
+        <Redirect to="/sign-in" />
+      );
+    }
+
+    const signOut = useSignOut();
+    const { data, error, loading } = useMeQuery();
+
+    useCacheService();
+
+    if (loading || !data) return null;
+
+    if (error || !data.me) {
+      signOut();
+      return <Redirect to="/sign-in" />;
+    }
+
+    return (
+      <MyContext.Provider value={data.me}>
+        <Component {...(props as P)} />
+      </MyContext.Provider>
+    );
+  };
+};
+
+export const useSignIn = useSignInMutation;
+export const useSignUp = useSignUpMutation;
+
+export const useSignOut = () => {
+  const client = useApolloClient();
+
+  return useCallback(() => {
+    // "expires" represents the lifespan of a cookie. Beyond that date the cookie will
+    // be deleted by the browser. "expires" cannot be viewed from "document.cookie"
+    document.cookie = `authToken=;expires=${new Date(0)}`;
+
+    // Clear cache
+    return client.clearStore();
+  }, [client]);
+};
+
+export const isSignedIn = () => {
+  return /authToken=.+(;|$)/.test(document.cookie);
+};

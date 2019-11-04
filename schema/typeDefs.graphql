@@ -1,0 +1,48 @@
+scalar Date
+scalar URL
+
+type User {
+  id: ID!
+  name: String!
+  picture: URL
+}
+
+type Message {
+  id: ID!
+  content: String!
+  createdAt: Date!
+  chat: Chat
+  sender: User
+  recipient: User
+  isMine: Boolean!
+}
+
+type Chat {
+  id: ID!
+  name: String
+  picture: URL
+  lastMessage: Message
+  messages: [Message!]!
+  participants: [User!]!
+}
+
+type Query {
+  me: User
+  chats: [Chat!]!
+  chat(chatId: ID!): Chat
+  users: [User!]!
+}
+
+type Mutation {
+  addChat(recipientId: ID!): Chat
+  addMessage(chatId: ID!, content: String!): Message
+  removeChat(chatId: ID!): ID
+  signIn(username: String!, password: String!): User
+  signUp(name: String!, username: String!, password: String!, passwordConfirm: String!): User
+}
+
+type Subscription {
+  chatAdded: Chat!
+  chatRemoved: ID!
+  messageAdded: Message!
+}
